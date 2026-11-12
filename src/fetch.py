@@ -341,9 +341,10 @@ class Fetcher:
                         server_headers["last-modified"])
 
                 content: bytes
-                if "#" in source.url and source.url.partition("#")[2]:
+                url = source.url_override or source.url
+                if "#" in url and url.partition("#")[2]:
                     # if URL contains #, treat the path after # as an embedded ZIP file
-                    sub_path = source.url.partition("#")[2]
+                    sub_path = url.partition("#")[2]
                     zipfile = ZipFile(io.BytesIO(response.content))
 
                     content = zipfile.read(sub_path)
@@ -472,9 +473,6 @@ class Fetcher:
             os.mkdir(outdir)
 
         for source in region.sources:
-            if source.function:
-                source = getattr(region_helpers, source.function)(source)
-
             if source.skip:
                 if source.skip_reason != "":
                     print("Skipping " + region_name + "-" + source.name + ": " + source.skip_reason)
@@ -507,6 +505,9 @@ class Fetcher:
             output_path = outdir.absolute() / download_name
 
             try:
+                if source.function:
+                    source = getattr(region_helpers, source.function)(source)
+
                 new_data = self.fetch_source(download_path, source)
             except Exception as e:
                 eprint(f"Error: Could not fetch {region_name}-{source.name}: {e}")
